@@ -1,0 +1,5 @@
+{
+  "main": "../lib/dataset/index.js",
+  "types": "../lib/dataset/index.d.ts",
+  "sideEffects": false
+}

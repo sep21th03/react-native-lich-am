@@ -1,0 +1,5 @@
+{
+  "main": "../lib/ui/index.js",
+  "types": "../lib/ui/index.d.ts",
+  "sideEffects": false
+}

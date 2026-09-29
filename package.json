@@ -1,0 +1,83 @@
+{
+  "name": "react-native-lich-am",
+  "version": "1.0.0",
+  "description": "Thư viện lịch âm (âm lịch Việt Nam) cho React Native & JavaScript — chuyển đổi dương/âm, can chi, tiết khí, trực, giờ hoàng đạo, nạp âm, ngày tốt xấu. Kèm component <LunarCalendar/> sẵn dùng.",
+  "keywords": [
+    "react-native",
+    "lich-am",
+    "am-lich",
+    "lunar",
+    "lunar-calendar",
+    "vietnamese-lunar",
+    "can-chi",
+    "tiet-khi",
+    "gio-hoang-dao",
+    "lich-viet",
+    "expo",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "nguyenhoa",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "react-native": "lib/index.js",
+  "sideEffects": false,
+  "files": [
+    "lib",
+    "core",
+    "dataset",
+    "ui",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./core": {
+      "types": "./lib/core/index.d.ts",
+      "default": "./lib/core/index.js"
+    },
+    "./dataset": {
+      "types": "./lib/dataset/index.d.ts",
+      "default": "./lib/dataset/index.js"
+    },
+    "./dataset/*": {
+      "types": "./lib/dataset/*.d.ts",
+      "default": "./lib/dataset/*.js"
+    },
+    "./ui": {
+      "types": "./lib/ui/index.d.ts",
+      "default": "./lib/ui/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "smoke": "node scripts/smoke.mjs",
+    "build": "node scripts/build.mjs",
+    "build:dataset": "node scripts/build-dataset.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-native": ">=0.64.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.79",
+    "react": "^18.2.0",
+    "react-native": "^0.74.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
