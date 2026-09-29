@@ -1,6 +1,6 @@
 {
   "name": "react-native-lich-am",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Thư viện lịch âm (âm lịch Việt Nam) cho React Native & JavaScript — chuyển đổi dương/âm, can chi, tiết khí, trực, giờ hoàng đạo, nạp âm, ngày tốt xấu. Kèm component <LunarCalendar/> sẵn dùng.",
   "keywords": [
     "react-native",
