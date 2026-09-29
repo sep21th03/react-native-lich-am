@@ -14,6 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const core = require(path.join(ROOT, 'lib', 'index.js'));
 const ds = require(path.join(ROOT, 'lib', 'dataset', 'index.js'));
+const THAN_12 = core.THAN_12;
 
 let pass = 0;
 let fail = 0;
@@ -95,24 +96,61 @@ eq('  trực', v1.truc, 'Kiến');
 eq('  số sao tốt', v1.saoTot.length, 7);
 eq('  số sao xấu', v1.saoXau.length, 5);
 ok('  có việc nên làm', v1.nenLam.length > 0);
-ok('  11–12 khung giờ (nguồn thiếu giờ Tỵ ở 125 ngày)', v1.gio.length >= 11 && v1.gio.length <= 12);
+eq('  đủ 12 khung giờ', v1.gio.length, 12);
 ok('  khung giờ tăng dần theo index', v1.gio.every((g, i) => i === 0 || g.index > v1.gio[i - 1].index));
+ok('  mỗi giờ có đúng một thần hoàng đạo/hắc đạo',
+  v1.gio.every((g) => g.sao.filter((n) => THAN_12.includes(n)).length === 1));
 ok('  có hướng theo ngày', v1.huong.ngay.length > 0);
 ok('  điểm 0–100', v1.diem >= 0 && v1.diem <= 100);
 eq('  ngày không có dữ liệu → null', ds.getDayData('2030-01-01'), null);
 
-// Khe hở dữ liệu nguồn: Lịch Việt bỏ trống đúng khung giờ index 5 (giờ Tỵ)
-// trên 125/1462 ngày. Mọi ngày khác phải đủ 12 khung, không ngày nào thiếu giờ khác.
-let thieu12 = 0;
-let thieuGioKhac = 0;
+// Bảng giờ chuẩn đã lấp ô thiếu và sửa ô sai của nguồn:
+//   - `gio`      luôn đủ 12 khung, mỗi khung đúng 1 thần hoàng đạo/hắc đạo
+//   - `gioRaw`   giữ nguyên bản gốc (125 ngày chỉ có 11 khung, thiếu giờ Tỵ)
+let thieuGio = 0;   // số ngày `gio` không đủ 12
+let nhieuThan = 0;  // số khung không đúng 1 thần
+let rawThieu = 0;   // số ngày `gioRaw` thiếu khung
+let rawThieuKhac = 0;
+let suyRa = 0;      // số khung được dựng lại
+let daSua = 0;      // số khung được sửa
 for (const key of ds.listDayKeys()) {
-  const g = ds.getDayData(key).gio;
-  if (g.length === 12) continue;
-  thieu12 += 1;
-  if (g.length !== 11 || g.some((x) => x.index === 5)) thieuGioKhac += 1;
+  const d = ds.getDayData(key);
+  if (d.gio.length !== 12) thieuGio += 1;
+  for (const g of d.gio) {
+    if (g.sao.filter((n) => THAN_12.includes(n)).length !== 1) nhieuThan += 1;
+    if (g.nguon === 'suy-ra') suyRa += 1;
+    if (g.nguon === 'sua') daSua += 1;
+  }
+  if (d.gioRaw.length !== 12) {
+    rawThieu += 1;
+    if (d.gioRaw.length !== 11 || d.gioRaw.some((x) => x.index === 5)) rawThieuKhac += 1;
+  }
 }
-eq('  125 ngày thiếu đúng 1 khung giờ', thieu12, 125);
-eq('  ngày thiếu giờ luôn thiếu giờ Tỵ (index 5)', thieuGioKhac, 0);
+eq('  mọi ngày đều đủ 12 khung giờ', thieuGio, 0);
+eq('  mọi khung giờ đúng 1 thần hoàng đạo/hắc đạo', nhieuThan, 0);
+eq('  gioRaw: 125 ngày thiếu đúng 1 khung', rawThieu, 125);
+eq('  gioRaw: ngày thiếu khung luôn thiếu giờ Tỵ', rawThieuKhac, 0);
+eq('  số khung được dựng lại (5 can-chi × 25 ngày)', suyRa, 125);
+ok('  số khung được sửa > 0', daSua > 0);
+
+// Chốt hồi quy cho 2 lỗi cụ thể của nguồn.
+// (1) Ngày Ất Dậu (2024-01-22): nguồn tính giờ 7..11 theo chi của ngày kế tiếp
+//     (Bính Tuất) nên ra Câu trần thay vì Bảo quang ở giờ Mùi.
+const atDau = ds.getDayData('2024-01-22');
+eq('  Ất Dậu: giờ 7 (Mùi) đã sửa thành Bảo quang',
+  atDau.gio[7].sao.filter((n) => THAN_12.includes(n)), ['Bảo quang']);
+eq('  Ất Dậu: giờ 7 được đánh dấu đã sửa', atDau.gio[7].nguon, 'sua');
+ok('  Ất Dậu: gioRaw giữ nguyên Chu tước của nguồn',
+  atDau.gioRaw[7].sao.includes('Chu tước'));
+
+// (2) Ngày Giáp Tý (2024-01-01): nguồn bỏ trống giờ Tỵ (index 5).
+const giapTy = ds.getDayData('2024-01-01');
+eq('  Giáp Tý: đã lấp đủ 12 khung', giapTy.gio.length, 12);
+eq('  Giáp Tý: giờ Tỵ được dựng lại', giapTy.gio[5].nguon, 'suy-ra');
+eq('  Giáp Tý: gioRaw chỉ có 11 khung', giapTy.gioRaw.length, 11);
+// Chi Tý ⇒ thần ở giờ Tỵ là Huyền vũ (bảng cổ điển), khớp các ngày Bính/Mậu/Canh/Nhâm Tý
+eq('  Giáp Tý: giờ Tỵ có Huyền vũ',
+  giapTy.gio[5].sao.filter((n) => THAN_12.includes(n)), ['Huyền vũ']);
 
 console.log('\n── Tìm ngày tốt ──────────────────────────────────────');
 const good = ds.findGoodDays({ activity: 'Khai trương', from: '2024-01-01', to: '2024-12-31', limit: 3 });

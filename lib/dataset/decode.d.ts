@@ -81,6 +81,25 @@ export interface LichVietGio {
     sao: string[];
     /** Có phải một trong các giờ tốt nhất ngày */
     top: boolean;
+    /**
+     * Nguồn gốc của khung giờ này:
+     * - `nguon`  — nguyên vẹn như dữ liệu gốc
+     * - `sua`    — dữ liệu gốc sai, đã tính lại theo luật cổ điển
+     * - `suy-ra` — dữ liệu gốc bỏ trống, đã dựng lại
+     */
+    nguon: 'nguon' | 'sua' | 'suy-ra';
+}
+/**
+ * Một khung giờ theo thang điểm riêng của app Lịch Việt.
+ * Dùng cho `gioTotNhat` — điểm ở đây KHÁC `gio[].diem` (thang của thư viện).
+ */
+export interface LichVietGioTomTat {
+    index: number;
+    chi: string;
+    /** Điểm theo thang riêng của app, không so được với `gio[].diem` */
+    diem: number;
+    sao: string[];
+    top: boolean;
 }
 export interface LichVietHuong {
     /** Tên sơn, ví dụ "Tốn", "Bính" */
@@ -115,10 +134,12 @@ export interface LichVietDay {
     saoXau: string[];
     nenLam: string[];
     khongNenLam: string[];
-    /** Đủ 12 khung giờ kèm điểm */
+    /** Đủ 12 khung giờ, đã lấp ô thiếu và sửa ô sai của nguồn */
     gio: LichVietGio[];
-    /** Các giờ tốt nhất trong ngày */
-    gioTotNhat: LichVietGio[];
+    /** Khung giờ nguyên bản của nguồn (11 hoặc 12 phần tử, có thể chứa lỗi) */
+    gioRaw: LichVietGio[];
+    /** Các giờ tốt nhất trong ngày, theo thang điểm riêng của app */
+    gioTotNhat: LichVietGioTomTat[];
     /** 4 giờ đại cát */
     bonGioDaiCat: LichVietDaiCat[];
     /** Giờ quý đăng thiên môn (Dương quý / Âm quý) */

@@ -6,6 +6,8 @@
  */
 
 import { CHI, NGU_HANH, TRUC } from '../core/constants';
+import { jdFromDate } from '../core/astro';
+import { getCanChiDay } from '../core/canchi';
 
 declare function require(id: string): unknown;
 
@@ -95,6 +97,26 @@ export interface LichVietGio {
   sao: string[];
   /** Có phải một trong các giờ tốt nhất ngày */
   top: boolean;
+  /**
+   * Nguồn gốc của khung giờ này:
+   * - `nguon`  — nguyên vẹn như dữ liệu gốc
+   * - `sua`    — dữ liệu gốc sai, đã tính lại theo luật cổ điển
+   * - `suy-ra` — dữ liệu gốc bỏ trống, đã dựng lại
+   */
+  nguon: 'nguon' | 'sua' | 'suy-ra';
+}
+
+/**
+ * Một khung giờ theo thang điểm riêng của app Lịch Việt.
+ * Dùng cho `gioTotNhat` — điểm ở đây KHÁC `gio[].diem` (thang của thư viện).
+ */
+export interface LichVietGioTomTat {
+  index: number;
+  chi: string;
+  /** Điểm theo thang riêng của app, không so được với `gio[].diem` */
+  diem: number;
+  sao: string[];
+  top: boolean;
 }
 
 export interface LichVietHuong {
@@ -128,10 +150,12 @@ export interface LichVietDay {
   saoXau: string[];
   nenLam: string[];
   khongNenLam: string[];
-  /** Đủ 12 khung giờ kèm điểm */
+  /** Đủ 12 khung giờ, đã lấp ô thiếu và sửa ô sai của nguồn */
   gio: LichVietGio[];
-  /** Các giờ tốt nhất trong ngày */
-  gioTotNhat: LichVietGio[];
+  /** Khung giờ nguyên bản của nguồn (11 hoặc 12 phần tử, có thể chứa lỗi) */
+  gioRaw: LichVietGio[];
+  /** Các giờ tốt nhất trong ngày, theo thang điểm riêng của app */
+  gioTotNhat: LichVietGioTomTat[];
   /** 4 giờ đại cát */
   bonGioDaiCat: LichVietDaiCat[];
   /** Giờ quý đăng thiên môn (Dương quý / Âm quý) */
@@ -184,21 +208,75 @@ function decodeHuong(list: Array<[number, number, number]>): LichVietHuong[] {
   return list.map(([s, soSao, h]) => ({ son: dict.son[s], soSao, huong: dict.huong[h] }));
 }
 
+/* ------------------------------------------------------------------ */
+/* Bảng giờ chuẩn + chỉ số vòng lục giáp                               */
+/* ------------------------------------------------------------------ */
+
+interface GioTableSao {
+  id: number;
+  /** 0 = sao xấu, 1 = sao tốt */
+  loai: number;
+  ten: string;
+  /** Trọng số đóng góp vào điểm của giờ */
+  w: number;
+}
+
+interface GioTable {
+  note: string;
+  sao: GioTableSao[];
+  /** `"<chỉ số can-chi 0..59>|<giờ 0..11>"` → danh sách id sao */
+  cells: Record<string, number[]>;
+}
+
+const GIO_TABLE = require('./data/gio-table.json') as GioTable;
+
+/** Tra sao theo id — `GIO_TABLE.sao` là mảng phẳng, id không trùng vị trí. */
+const SAO_BY_ID = new Map(GIO_TABLE.sao.map((s) => [s.id, s]));
+
+/**
+ * Chỉ số 0..59 trong vòng lục giáp của ngày dương `iso`.
+ * Khớp với `scripts/build-gio-table.mjs` nên bảng tra được đúng ô.
+ */
+function canChi60(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  const cc = getCanChiDay(jdFromDate(d, m, y));
+  for (let i = 0; i < 60; i += 1) {
+    if (i % 10 === cc.canIndex && i % 12 === cc.chiIndex) return i;
+  }
+  return -1;
+}
+
 export function decodeDay(iso: string, r: RawDay): LichVietDay {
   // r.l có dạng "dd-mm-yyyy" (ví dụ "20-11-2023" = 20 tháng Mười Một 2023)
   const [ld, lm, ly] = r.l.split('-').map(Number);
-  const gio: LichVietGio[] = r.h.map(([g, diem, sao]) => ({
-    index: g,
-    chi: CHI[g] ?? String(g),
-    diem,
-    sao: sao.map((i) => dict.gioSao[i]),
-    top: false,
-  }));
-  const topIndex = new Set(r.g.map(([g]) => g));
-  for (const g of gio) {
-    g.top = topIndex.has(g.index);
-  }
 
+  // Dựng lại 12 khung giờ từ bảng chuẩn (xem scripts/build-gio-table.mjs).
+  // Nguồn bỏ trống giờ Tỵ ở 5 can-chi và tính sai vài ô, nên không dùng thẳng r.h.
+  const gio: LichVietGio[] = [];
+  const rawHours = new Map(r.h.map(([g, diem, sao]) => [g, { diem, sao }]));
+  const ci = canChi60(iso);
+  const topIndex = new Set(r.g.map(([g]) => g));
+  for (let h = 0; h < 12; h += 1) {
+    const ids = GIO_TABLE.cells[`${ci}|${h}`] || [];
+    const sao = ids.map((id) => SAO_BY_ID.get(id));
+    const diem = sao.reduce((a, s) => a + (s ? s.w : 0), 0);
+    const src = rawHours.get(h);
+    let nguon: LichVietGio['nguon'] = 'nguon';
+    if (!src) nguon = 'suy-ra';
+    else {
+      const srcNames = src.sao.map((i) => dict.gioSao[i]).slice().sort().join('|');
+      const nowNames = sao.map((s) => (s ? s.ten : '')).slice().sort().join('|');
+      if (srcNames !== nowNames || src.diem !== diem) nguon = 'sua';
+    }
+    gio.push({
+      index: h,
+      chi: CHI[h] ?? String(h),
+      diem,
+      sao: sao.map((s) => (s ? s.ten : '')),
+      top: topIndex.has(h),
+      nguon,
+    });
+  }
   return {
     date: iso,
     lunar: { day: ld, month: lm, year: ly },
@@ -211,6 +289,14 @@ export function decodeDay(iso: string, r: RawDay): LichVietDay {
     nenLam: r.y.map((i) => dict.viec[i]),
     khongNenLam: r.z.map((i) => dict.viec[i]),
     gio,
+    gioRaw: r.h.map(([g, diem, sao]) => ({
+      index: g,
+      chi: CHI[g] ?? String(g),
+      diem,
+      sao: sao.map((i) => dict.gioSao[i]),
+      top: false,
+      nguon: 'nguon' as const,
+    })),
     gioTotNhat: r.g.map(([g, diem]) => ({
       index: g,
       chi: CHI[g] ?? String(g),

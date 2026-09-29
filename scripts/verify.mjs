@@ -206,6 +206,34 @@ function main() {
   console.log(`   nửa cuối ngày tính theo chi NGÀY KẾ TIẾP       ${String(anomalies.nextDay).padStart(5)} ô`);
   console.log(`   cùng một thần bị gán lặp trong ngày            ${String(anomalies.duplicate).padStart(5)} ô`);
 
+  /* ── Kiểm chứng lớp dataset sau khi lấp ô thiếu / sửa ô sai ───────────── */
+  const dsPath = path.join(ROOT, 'lib', 'dataset', 'index.js');
+  let grid = null;
+  if (fs.existsSync(dsPath)) {
+    const ds = require(dsPath);
+    const THAN = core.THAN_12;
+    const GOOD = new Set(['Thanh long', 'Minh đường', 'Kim quỹ', 'Bảo quang', 'Ngọc đường', 'Tư mệnh']);
+    let khung = 0; let thieuKhung = 0; let saiThan = 0; let saiHoangDao = 0;
+    let suyRa = 0; let daSua = 0;
+    for (const iso of keys) {
+      const d = ds.getDayData(iso);
+      if (!d) { thieuKhung += 1; continue; }
+      const chi = core.getLunarDayInfo(iso).canChi.day.chiIndex;
+      const good = [];
+      for (const g of d.gio) {
+        khung += 1;
+        if (g.sao.filter((n) => THAN.indexOf(n) >= 0).length !== 1) saiThan += 1;
+        if (g.nguon === 'suy-ra') suyRa += 1;
+        if (g.nguon === 'sua') daSua += 1;
+        if (g.sao.some((n) => GOOD.has(n))) good.push(g.index);
+      }
+      if (d.gio.length !== 12) thieuKhung += 1;
+      const want = core.getHoangDaoHours(chi);
+      if (JSON.stringify(good) !== JSON.stringify(want)) saiHoangDao += 1;
+    }
+    grid = { khung, thieuKhung, saiThan, saiHoangDao, suyRa, daSua };
+  }
+
   const critical = stats.lunar + stats.canChiYear + stats.canChiMonth + stats.canChiDay + stats.nguHanh + stats.truc + stats.tietKhi;
   const residual = stats.gioHoangDao + stats.than;
   console.log(`\n${'═'.repeat(58)}`);
@@ -217,7 +245,25 @@ function main() {
   } else {
     console.log(`KẾT LUẬN: còn ${critical} sai lệch ở trường cốt lõi và ${residual} chưa giải thích — cần xem lại.`);
   }
-  process.exitCode = critical + residual === 0 ? 0 : 1;
+
+  /* ── Kết quả lớp dataset (đã lấp ô thiếu / sửa ô sai) ─────────────────── */
+  let gridOk = true;
+  if (grid) {
+    console.log(`\n${'─'.repeat(58)}\nLớp dataset sau khi lấp ô thiếu và sửa ô sai của nguồn:`);
+    const line = (label, bad, total, unit) => {
+      const mark = bad === 0 ? 'OK ' : '!! ';
+      if (bad) gridOk = false;
+      console.log(`${mark}${label.padEnd(38)} sai ${String(bad).padStart(4)} / ${total} ${unit}`);
+    };
+    line('Ngày thiếu khung giờ', grid.thieuKhung, n, 'ngày');
+    line('Khung giờ không đúng 1 thần', grid.saiThan, grid.khung, 'khung');
+    line('Giờ hoàng đạo lệch công thức cổ điển', grid.saiHoangDao, n, 'ngày');
+    console.log(`   khung giờ dựng lại: ${grid.suyRa} | khung giờ sửa: ${grid.daSua} | tổng khung: ${grid.khung}`);
+  } else {
+    console.log('\n(bỏ qua kiểm chứng lớp dataset — chưa build lib/dataset)');
+  }
+
+  process.exitCode = critical + residual === 0 && gridOk ? 0 : 1;
 }
 
 main();

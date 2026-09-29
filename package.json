@@ -57,7 +57,8 @@
     "smoke": "node scripts/smoke.mjs",
     "build": "node scripts/build.mjs",
     "build:dataset": "node scripts/build-dataset.mjs",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "build:gio-table": "node scripts/build-gio-table.mjs"
   },
   "peerDependencies": {
     "react": ">=17.0.0",

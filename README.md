@@ -80,8 +80,9 @@ d.saoTot;        // ["Thiên ân", "Nguyệt ân", ...]
 d.saoXau;        // ["Thiên hỏa", "Nguyệt yếm", ...]
 d.nenLam;        // ["Cầu cúng", "Khai trương", ...]
 d.khongNenLam;   // ["Động thổ", "An táng", ...]
-d.gio;           // 11 hoặc 12 giờ, mỗi giờ: { index, chi, diem, sao, top }
-d.gioTotNhat;    // 5 giờ tốt nhất
+d.gio;           // đủ 12 giờ: { index, chi, diem, sao, top, nguon }
+d.gioRaw;        // giờ nguyên bản của nguồn (11 hoặc 12 phần tử, có thể còn lỗi)
+d.gioTotNhat;    // 5 giờ tốt nhất theo thang điểm riêng của app
 d.bonGioDaiCat;  // 4 giờ đại cát (Thiên ất / Thiên không)
 d.gioQuyDangThienMon;
 d.huong.ngay;    // [{ son: "Khôn", huong: "Chính Tây Nam", soSao: 4 }, ...]
@@ -91,11 +92,24 @@ d.chatLuong;     // 'dep' | 'tot' | 'bt' | 'xau' | 'ratxau'
 d.ngayRatXau;    // boolean
 ```
 
-> **`d.gio` có thể chỉ có 11 phần tử.** Trong dữ liệu gốc, 125/1462 ngày bị thiếu
-> đúng khung giờ index `5` (giờ Tỵ) — app nguồn không trả về khung đó. Thư viện giữ
-> nguyên hiện trạng thay vì bịa thêm; nếu cần lưới 12 ô cố định thì tự chèn `null`
-> vào vị trí `index === 5`. Kéo theo đó, những ngày thiếu giờ Tỵ sẽ không liệt kê
-> được giờ Tỵ là giờ hoàng đạo dù theo cách tính nó vẫn là giờ tốt.
+### `d.gio` — 12 khung giờ, đã lấp ô thiếu và sửa ô sai
+
+Dữ liệu gốc có 3 loại lỗi (xem [Bất thường của dữ liệu nguồn](#bất-thường-của-dữ-liệu-nguồn)).
+Thư viện dựng lại toàn bộ lưới giờ từ bảng chuẩn `60 can-chi × 12 giờ`
+(`scripts/build-gio-table.mjs`), nên `d.gio` **luôn đủ 12 khung** và mỗi khung
+**luôn đúng đúng một thần hoàng đạo/hắc đạo**. Trường `nguon` cho biết xuất xứ:
+
+| `nguon` | Nghĩa | Số lượng |
+|---|---|---|
+| `nguon` | nguyên vẹn như dữ liệu gốc | 17.142 khung |
+| `sua` | gốc sai, đã tính lại theo luật cổ điển | 277 khung |
+| `suy-ra` | gốc bỏ trống, đã dựng lại | 125 khung |
+
+277 khung bị sửa nằm gọn trong 7 can-chi: **Ất Dậu** (125), **Canh Ngọ** (50),
+**Quý Tỵ** (24), **Ất Mão** (24), **Bính Thìn** (24), **Kỷ Mùi** (24), **Giáp Ngọ** (6).
+
+Muốn dữ liệu y như bản gốc thì đọc `d.gioRaw`. Lưu ý `d.gioTotNhat` vẫn theo
+**thang điểm riêng của app**, không so được với `d.gio[].diem`.
 
 ### Tìm ngày tốt cho một việc
 
@@ -175,14 +189,14 @@ Thuật toán được đối chiếu với **1.462 ngày** dữ liệu gốc (`
 | Giờ hoàng đạo | 1462/1462 |
 | Thần cai quản từng giờ | 43.541/43.541 giờ-sao |
 
-Còn **206 chỗ** lệch rải rác, nhưng đều là **lỗi của chính app nguồn** — đã lần ra
-nguyên nhân và `verify` đếm riêng, không tính vào kết quả:
+Còn **206 chỗ** lệch giữa *thuật toán* và *dữ liệu gốc*, nhưng đều là **lỗi của chính
+app nguồn** — đã lần ra nguyên nhân và `verify` đếm riêng, không tính vào kết quả:
 
 | Loại | Số lượng | Nguyên nhân |
 |---|---|---|
 | Thiếu giờ hoàng đạo | 75 ngày | nguồn bỏ trống khung giờ Tỵ nên không liệt kê được |
-| Nửa cuối ngày sai chi | 100 ô | nguồn tính giờ từ index 7 trở đi theo chi của **ngày kế tiếp** (thấy rõ ở các ngày Ất Dậu) |
-| Thần bị gán lặp | 31 ô | nguồn gán cùng một thần cho 2 giờ trong ngày (thấy rõ ở các ngày Canh Ngọ) |
+| Nửa cuối ngày sai chi | 100 ô | nguồn tính giờ từ index 7 trở đi theo chi của **ngày kế tiếp** |
+| Thần bị gán lặp | 31 ô | nguồn gán cùng một thần cho 2 giờ trong ngày |
 
 Ví dụ kiểm chứng được: ngày Ất Dậu, tập giờ hoàng đạo của nguồn đúng bằng
 *hợp của* tập chuẩn cho giờ 0–6 và tập của ngày kế tiếp cho giờ 7–11.
@@ -192,17 +206,45 @@ Bảng giờ hoàng đạo và hướng xuất hành cũng khớp với nguồn 
 
 ---
 
+## Bất thường của dữ liệu nguồn
+
+App Lịch Việt có lỗi rải rác trong bảng giờ. Thư viện **không copy nguyên** mà
+dựng lại lưới giờ từ bảng chuẩn (xem [`d.gio`](#dgio--12-khung-giờ-đã-lấp-ô-thiếu-và-sửa-ô-sai)),
+đồng thời giữ bản gốc ở `d.gioRaw`. Bảy can-chi bị ảnh hưởng:
+
+| Can-chi ngày | Số khung | Lỗi |
+|---|---|---|
+| **Ất Dậu** | 125 | giờ 7–11 tính theo chi của ngày kế tiếp (Bính Tuất) |
+| **Canh Ngọ** | 50 | giờ 2 và 6 sai/lặp thần |
+| **Quý Tỵ** | 24 | giờ 7 sai thần, thiếu Tuần trung không vong và Ngũ bất ngộ |
+| **Ất Mão** | 24 | giờ 11 thừa Câu trần |
+| **Bính Thìn** | 24 | giờ 5 thiếu Triệt lộ không vong |
+| **Kỷ Mùi** | 24 | giờ 8 thiếu Triệt lộ không vong |
+| **Giáp Ngọ** | 6 | giờ 3 thừa Thanh long |
+
+Ngoài ra nguồn **bỏ trống hẳn khung giờ Tỵ** cho 5 can-chi đầu vòng lục giáp
+(Giáp Tý, Ất Sửu, Bính Dần, Đinh Mão, Mậu Thìn) ⇒ 125 ngày chỉ có 11 khung.
+
+Bảng chuẩn được kiểm chứng lại trên **704/715 ô** dữ liệu gốc; 11 ô còn lại đúng là
+các ô lỗi nêu trên, và ở mỗi ô thuật toán cổ điển đều đúng còn nguồn sai.
+
+---
+
 ## Kiểm chứng
 
 `lib/` là **bản dựng sẵn đã commit** — cài là chạy, không cần bước build.
 
 ```bash
-npm run smoke     # kiểm tra nhanh (54 assert): chuyển đổi, can chi, dữ liệu, tìm ngày tốt
-npm run verify    # đối chiếu toàn bộ 1.462 ngày với calendar_full.json (cần file nguồn)
-npm run build     # dựng lại lib/ từ src/ (TypeScript) — tuỳ chọn
+npm run smoke            # kiểm tra nhanh (66 assert): chuyển đổi, can chi, dữ liệu, lấp/sửa giờ
+npm run verify           # đối chiếu toàn bộ 1.462 ngày với calendar_full.json (cần file nguồn)
+npm run build            # dựng lại lib/ từ src/ (TypeScript)
+npm run build:gio-table  # dựng lại bảng giờ chuẩn từ calendar_full.json
 ```
 
-`verify` cần đường dẫn tới `calendar_full.json`:
+`verify` kiểm ở **hai tầng**: thuật toán trong `lib/` so với dữ liệu gốc, và lớp
+dataset sau khi lấp ô thiếu / sửa ô sai — cả hai đều phải 0 sai lệch.
+
+`verify` và `build:gio-table` cần đường dẫn tới `calendar_full.json`:
 
 ```bash
 node scripts/verify.mjs "/Users/nguyenhoa/WorkBuddy AI/2026-09-21-15-43-01/calendar_full.json"
@@ -216,16 +258,17 @@ node scripts/verify.mjs "/Users/nguyenhoa/WorkBuddy AI/2026-09-21-15-43-01/calen
 lib/                      bản JS đã dựng (được publish, cài là chạy)
   index.js                core — không phụ thuộc gì
   dataset/                decode + index + 2024…2028
-  dataset/data/           dữ liệu đã trích xuất (dict.json + days-YYYY.json)
+  dataset/data/           dict.json + days-YYYY.json + gio-table.json
   ui/                     <LunarCalendar/> & <LunarDayDetail/>
 src/                      nguồn TypeScript tương ứng (nguồn chân lý)
   core/ dataset/ ui/
 src/dataset/data/         dữ liệu nguồn để build chép sang lib/
 scripts/
-  build-dataset.mjs       calendar_full.json  →  src/dataset/data/*.json
+  build-dataset.mjs       calendar_full.json  →  src/dataset/data/days-YYYY.json
+  build-gio-table.mjs     calendar_full.json  →  src/dataset/data/gio-table.json
   build.mjs               src/ (TS)  →  lib/ (JS + .d.ts) + data + proxy subpath
   smoke.mjs               kiểm tra nhanh
-  verify.mjs              đối chiếu 1.462 ngày với dữ liệu gốc
+  verify.mjs              đối chiếu 1.462 ngày với dữ liệu gốc (2 tầng)
 core/ dataset/ ui/        proxy package.json cho bundler không hỗ trợ "exports"
 ```
 
