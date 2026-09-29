@@ -17,7 +17,19 @@
     "typescript"
   ],
   "license": "MIT",
-  "author": "nguyenhoa",
+  "author": {
+    "name": "Nguyen Hoa",
+    "email": "ngh10.tt@gmail.com",
+    "url": "https://github.com/sep21th03"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sep21th03/react-native-lich-am.git"
+  },
+  "homepage": "https://github.com/sep21th03/react-native-lich-am#readme",
+  "bugs": {
+    "url": "https://github.com/sep21th03/react-native-lich-am/issues"
+  },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "react-native": "lib/index.js",
@@ -52,6 +64,9 @@
       "default": "./lib/ui/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "smoke": "node scripts/smoke.mjs",
