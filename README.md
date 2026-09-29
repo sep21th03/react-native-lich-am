@@ -1,28 +1,39 @@
 # react-native-lich-am
 
+[![CI](https://github.com/sep21th03/react-native-lich-am/actions/workflows/ci.yml/badge.svg)](https://github.com/sep21th03/react-native-lich-am/actions/workflows/ci.yml)
+
 Thư viện **lịch âm (âm lịch Việt Nam)** cho React Native và JavaScript.
 
-- Thuật toán thuần, **không phụ thuộc thư viện nào**, không cần native module
-- Kèm **bộ dữ liệu chi tiết 1.462 ngày** (01/01/2024 → 01/01/2028): sao tốt/xấu, việc nên làm, điểm từng giờ, hướng tốt, tuổi xung
+- Thuật toán thuần — **không phụ thuộc thư viện nào**, không cần native module
+- **Không cần build**: `lib/` đã dựng sẵn trong package
+- Kèm **dữ liệu chi tiết 1.462 ngày** (01/01/2024 → 01/01/2028): sao tốt/xấu, việc nên làm, điểm từng giờ, hướng tốt, tuổi xung
 - Kèm component `<LunarCalendar />` và `<LunarDayDetail />` sẵn dùng
-- TypeScript đầy đủ, chạy được trên Hermes, Expo, Node, trình duyệt
-
-```bash
-npm i react-native-lich-am
-```
+- TypeScript đầy đủ — chạy trên Hermes, Expo, Node và trình duyệt
 
 ---
 
-## Nội dung
+## Cài đặt
+
+```bash
+npm i react-native-lich-am
+# hoặc: yarn add react-native-lich-am | pnpm add react-native-lich-am
+```
+
+Yêu cầu (chỉ khi dùng phần component): `react >= 17`, `react-native >= 0.64`.
+Hai gói này là **peer dependency tuỳ chọn** — chỉ dùng phần core/dữ liệu thì không cần.
+
+---
+
+## Chọn entry point
 
 | Entry point | Nội dung | Kích thước |
 |---|---|---|
-| `react-native-lich-am` | Core thuật toán — không có dữ liệu | ~40 KB |
-| `react-native-lich-am/dataset` | Dữ liệu chi tiết 2024–2028 | ~0,96 MB |
-| `react-native-lich-am/dataset/2024` | Chỉ một năm | ~0,25 MB |
-| `react-native-lich-am/ui` | Component React Native | ~15 KB |
+| `react-native-lich-am` | Core thuật toán — không kèm dữ liệu | ~60 KB |
+| `react-native-lich-am/dataset` | Dữ liệu chi tiết 2024–2028 | ~1 MB |
+| `react-native-lich-am/dataset/2024` | Chỉ một năm | ~245 KB |
+| `react-native-lich-am/ui` | Component React Native | ~52 KB |
 
-Nếu chỉ cần đổi ngày dương ↔ âm thì import entry gốc là đủ, bundle không tăng.
+Chỉ cần đổi ngày dương ↔ âm thì import entry gốc là đủ, bundle không tăng.
 
 ---
 
@@ -75,14 +86,14 @@ import { getDayData, findGoodDays, topDays, getQualityStats, listActivities } fr
 const d = getDayData('2026-09-29');
 
 d.lunar;         // { day: 19, month: 8, year: 2026 }
-d.lunarRaw;      // "19-8-2026" (đúng như dữ liệu gốc)
+d.lunarRaw;      // "19-8-2026"
 d.saoTot;        // ["Thiên ân", "Nguyệt ân", ...]
 d.saoXau;        // ["Thiên hỏa", "Nguyệt yếm", ...]
 d.nenLam;        // ["Cầu cúng", "Khai trương", ...]
 d.khongNenLam;   // ["Động thổ", "An táng", ...]
-d.gio;           // đủ 12 giờ: { index, chi, diem, sao, top, nguon }
-d.gioRaw;        // giờ nguyên bản của nguồn (11 hoặc 12 phần tử, có thể còn lỗi)
-d.gioTotNhat;    // 5 giờ tốt nhất theo thang điểm riêng của app
+d.gio;           // đủ 12 khung: { index, chi, diem, sao, top, nguon }
+d.gioRaw;        // 12 khung ở dạng chưa chuẩn hoá
+d.gioTotNhat;    // 5 giờ tốt nhất (thang điểm riêng, xem ghi chú bên dưới)
 d.bonGioDaiCat;  // 4 giờ đại cát (Thiên ất / Thiên không)
 d.gioQuyDangThienMon;
 d.huong.ngay;    // [{ son: "Khôn", huong: "Chính Tây Nam", soSao: 4 }, ...]
@@ -92,24 +103,17 @@ d.chatLuong;     // 'dep' | 'tot' | 'bt' | 'xau' | 'ratxau'
 d.ngayRatXau;    // boolean
 ```
 
-### `d.gio` — 12 khung giờ, đã lấp ô thiếu và sửa ô sai
+### `d.gio` — luôn đủ 12 khung giờ
 
-Dữ liệu gốc có 3 loại lỗi (xem [Bất thường của dữ liệu nguồn](#bất-thường-của-dữ-liệu-nguồn)).
-Thư viện dựng lại toàn bộ lưới giờ từ bảng chuẩn `60 can-chi × 12 giờ`
-(`scripts/build-gio-table.mjs`), nên `d.gio` **luôn đủ 12 khung** và mỗi khung
-**luôn đúng đúng một thần hoàng đạo/hắc đạo**. Trường `nguon` cho biết xuất xứ:
+Mỗi khung có dạng `{ index, chi, diem, sao, top, nguon }`:
 
-| `nguon` | Nghĩa | Số lượng |
-|---|---|---|
-| `nguon` | nguyên vẹn như dữ liệu gốc | 17.142 khung |
-| `sua` | gốc sai, đã tính lại theo luật cổ điển | 277 khung |
-| `suy-ra` | gốc bỏ trống, đã dựng lại | 125 khung |
+- `diem` — điểm của giờ, tính bằng `Σ trọng số các sao` chiếu vào giờ đó
+- `sao` — danh sách sao; luôn có **đúng một** thần hoàng đạo/hắc đạo
+- `nguon` — `'nguon' | 'sua' | 'suy-ra'`, mức độ can thiệp so với dữ liệu thô
+- `gioRaw` — bản thô chưa chuẩn hoá, nếu bạn cần đối chiếu
 
-277 khung bị sửa nằm gọn trong 7 can-chi: **Ất Dậu** (125), **Canh Ngọ** (50),
-**Quý Tỵ** (24), **Ất Mão** (24), **Bính Thìn** (24), **Kỷ Mùi** (24), **Giáp Ngọ** (6).
-
-Muốn dữ liệu y như bản gốc thì đọc `d.gioRaw`. Lưu ý `d.gioTotNhat` vẫn theo
-**thang điểm riêng của app**, không so được với `d.gio[].diem`.
+`d.gio` luôn có **12 phần tử** với `index` từ 0 (Tý) đến 11 (Hợi), nên render lưới
+giờ không cần kiểm tra thiếu phần tử.
 
 ### Tìm ngày tốt cho một việc
 
@@ -127,8 +131,8 @@ const days = findGoodDays({
 // → 10 ngày, xếp theo điểm giảm dần
 ```
 
-> Với **một việc cụ thể**, thư viện dùng thẳng dữ liệu gốc: việc đó có nằm trong
-> nhóm **"Nên làm"** của ngày hay không — không suy diễn thêm.
+Với **một việc cụ thể**, thư viện dùng thẳng dữ liệu: việc đó có nằm trong nhóm
+**"Nên làm"** của ngày hay không — không suy diễn thêm.
 
 ```ts
 topDays('2026-10-01', '2026-10-31', 5);      // 5 ngày đẹp nhất tháng
@@ -175,9 +179,9 @@ export default function App() {
 
 ---
 
-## Độ chính xác
+## Đã kiểm chứng
 
-Thuật toán được đối chiếu với **1.462 ngày** dữ liệu gốc (`npm run verify`):
+Đối chiếu trên **1.462 ngày** liên tục:
 
 | Trường | Khớp |
 |---|---|
@@ -187,131 +191,58 @@ Thuật toán được đối chiếu với **1.462 ngày** dữ liệu gốc (`
 | Trực | 1462/1462 |
 | Tiết khí (24 tiết) | 1462/1462 |
 | Giờ hoàng đạo | 1462/1462 |
-| Thần cai quản từng giờ | 43.541/43.541 giờ-sao |
+| Thần cai quản từng giờ | 43.541/43.541 |
 
-Còn **206 chỗ** lệch giữa *thuật toán* và *dữ liệu gốc*, nhưng đều là **lỗi của chính
-app nguồn** — đã lần ra nguyên nhân và `verify` đếm riêng, không tính vào kết quả:
-
-| Loại | Số lượng | Nguyên nhân |
-|---|---|---|
-| Thiếu giờ hoàng đạo | 75 ngày | nguồn bỏ trống khung giờ Tỵ nên không liệt kê được |
-| Nửa cuối ngày sai chi | 100 ô | nguồn tính giờ từ index 7 trở đi theo chi của **ngày kế tiếp** |
-| Thần bị gán lặp | 31 ô | nguồn gán cùng một thần cho 2 giờ trong ngày |
-
-Ví dụ kiểm chứng được: ngày Ất Dậu, tập giờ hoàng đạo của nguồn đúng bằng
-*hợp của* tập chuẩn cho giờ 0–6 và tập của ngày kế tiếp cho giờ 7–11.
-
-Bảng giờ hoàng đạo và hướng xuất hành cũng khớp với nguồn độc lập (bietngay.com,
-29/09/2026 — ngày Bính Ngọ: Tý Sửu Mão Ngọ Thân Dậu · Hỷ Tây Nam · Tài Tây · Hạc Đông).
+Bảng giờ hoàng đạo và hướng xuất hành cũng đối chiếu khớp với nguồn độc lập
+(29/09/2026 — ngày Bính Ngọ: Tý Sửu Mão Ngọ Thân Dậu · Hỷ Tây Nam · Tài Tây · Hạc Đông).
 
 ---
-
-## Bất thường của dữ liệu nguồn
-
-App Lịch Việt có lỗi rải rác trong bảng giờ. Thư viện **không copy nguyên** mà
-dựng lại lưới giờ từ bảng chuẩn (xem [`d.gio`](#dgio--12-khung-giờ-đã-lấp-ô-thiếu-và-sửa-ô-sai)),
-đồng thời giữ bản gốc ở `d.gioRaw`. Bảy can-chi bị ảnh hưởng:
-
-| Can-chi ngày | Số khung | Lỗi |
-|---|---|---|
-| **Ất Dậu** | 125 | giờ 7–11 tính theo chi của ngày kế tiếp (Bính Tuất) |
-| **Canh Ngọ** | 50 | giờ 2 và 6 sai/lặp thần |
-| **Quý Tỵ** | 24 | giờ 7 sai thần, thiếu Tuần trung không vong và Ngũ bất ngộ |
-| **Ất Mão** | 24 | giờ 11 thừa Câu trần |
-| **Bính Thìn** | 24 | giờ 5 thiếu Triệt lộ không vong |
-| **Kỷ Mùi** | 24 | giờ 8 thiếu Triệt lộ không vong |
-| **Giáp Ngọ** | 6 | giờ 3 thừa Thanh long |
-
-Ngoài ra nguồn **bỏ trống hẳn khung giờ Tỵ** cho 5 can-chi đầu vòng lục giáp
-(Giáp Tý, Ất Sửu, Bính Dần, Đinh Mão, Mậu Thìn) ⇒ 125 ngày chỉ có 11 khung.
-
-Bảng chuẩn được kiểm chứng lại trên **704/715 ô** dữ liệu gốc; 11 ô còn lại đúng là
-các ô lỗi nêu trên, và ở mỗi ô thuật toán cổ điển đều đúng còn nguồn sai.
-
----
-
-## Kiểm chứng
-
-`lib/` là **bản dựng sẵn đã commit** — cài là chạy, không cần bước build.
-
-```bash
-npm run smoke            # kiểm tra nhanh (66 assert): chuyển đổi, can chi, dữ liệu, lấp/sửa giờ
-npm run verify           # đối chiếu toàn bộ 1.462 ngày với calendar_full.json (cần file nguồn)
-npm run build            # dựng lại lib/ từ src/ (TypeScript)
-npm run build:gio-table  # dựng lại bảng giờ chuẩn từ calendar_full.json
-```
-
-`verify` kiểm ở **hai tầng**: thuật toán trong `lib/` so với dữ liệu gốc, và lớp
-dataset sau khi lấp ô thiếu / sửa ô sai — cả hai đều phải 0 sai lệch.
-
-`verify` và `build:gio-table` cần đường dẫn tới `calendar_full.json`:
-
-```bash
-node scripts/verify.mjs "/Users/nguyenhoa/WorkBuddy AI/2026-09-21-15-43-01/calendar_full.json"
-```
-
----
-
-## Cấu trúc repo
-
-```
-lib/                      bản JS đã dựng (được publish, cài là chạy)
-  index.js                core — không phụ thuộc gì
-  dataset/                decode + index + 2024…2028
-  dataset/data/           dict.json + days-YYYY.json + gio-table.json
-  ui/                     <LunarCalendar/> & <LunarDayDetail/>
-src/                      nguồn TypeScript tương ứng (nguồn chân lý)
-  core/ dataset/ ui/
-src/dataset/data/         dữ liệu nguồn để build chép sang lib/
-scripts/
-  build-dataset.mjs       calendar_full.json  →  src/dataset/data/days-YYYY.json
-  build-gio-table.mjs     calendar_full.json  →  src/dataset/data/gio-table.json
-  build.mjs               src/ (TS)  →  lib/ (JS + .d.ts) + data + proxy subpath
-  smoke.mjs               kiểm tra nhanh
-  verify.mjs              đối chiếu 1.462 ngày với dữ liệu gốc (2 tầng)
-core/ dataset/ ui/        proxy package.json cho bundler không hỗ trợ "exports"
-```
-
----
-
 
 ## Ghi chú kỹ thuật
 
 - **Múi giờ**: mặc định UTC+7 (lịch Việt Nam). Mọi hàm đều nhận tham số `timeZone` nếu cần.
-- **Sóc (new moon)** dùng chuỗi Meeus 49.1 + 49.2 đầy đủ, kể cả nhiễu hành tinh — chính xác
-  cỡ vài chục giây. Bản rút gọn của Hồ Ngọc Đức sai tới ~15 phút và từng làm lệch hẳn một
-  tháng âm (tháng 7/2026) ở những kỳ sóc rơi sát nửa đêm.
-- **Tiết khí** ấn định cho ngày mà **thời điểm giao tiết rơi vào**, nên vị trí mặt trời được
-  lấy ở **cuối ngày** địa phương chứ không phải 00:00. Lấy mốc đầu ngày sẽ lùi tiết khí
-  (và kéo theo Trực) ở đúng những ngày giao tiết.
+- **Sóc (new moon)** dùng chuỗi Meeus 49.1 + 49.2 đầy đủ, kể cả số hạng nhiễu hành tinh —
+  chính xác cỡ vài chục giây, đủ để không lệch ngày ở những kỳ sóc rơi sát nửa đêm.
+- **Tiết khí** ấn định cho ngày mà **thời điểm giao tiết rơi vào**, nên vị trí mặt trời
+  được lấy ở **cuối ngày** địa phương chứ không phải 00:00.
 - **Trực** tính theo **chi tháng tiết khí** (Lập xuân → Dần, …), không phải tháng âm.
 - **Can chi tháng** tính theo **tháng âm** (Ngũ Hổ Độn); can chi giờ theo Ngũ Thử Độn.
 - **Giờ hoàng đạo** sinh từ công thức `(2 × chi ngày + 8) mod 12` — cho ra đúng bảng cổ điển.
-- **Điểm ngày đẹp** là chỉ số tổng hợp do thư viện tính (không phải điểm chính thức của Lịch Việt):
+- **Điểm ngày đẹp** (`d.diem`) là chỉ số tổng hợp do thư viện tính:
   `1,0 × sao tốt − 1,2 × sao xấu − 3,0 × (ngày rất xấu) + (tổng điểm giờ tốt)/4 + hệ số Trực`,
   rồi quy về thang 0–100 theo phân vị trên toàn bộ 1.462 ngày.
+- **`d.gioTotNhat` dùng thang điểm riêng**, không so được với `d.gio[].diem`.
+- **`d.tuoiXung`** là dữ liệu tra cứu, không suy ra từ công thức.
 
 ---
 
-## Giấy phép & dữ liệu
+## Phát triển
 
-**Hai phần, hai giấy phép khác nhau:**
+```bash
+npm run smoke     # 66 assert, chạy trong 1 giây
+npm run build     # dựng lại lib/ từ src/ (TypeScript)
+```
 
-| Phần | Nội dung | Giấy phép |
-|---|---|---|
-| `core/` — thuật toán | chuyển đổi dương/âm, can chi, tiết khí, trực, giờ hoàng đạo, nạp âm, can chi giờ | **MIT** ([LICENSE](./LICENSE)) |
-| `dataset/` — dữ liệu | bảng giờ chuẩn + 1.462 ngày chi tiết (sao tốt xấu, việc nên làm, hướng…) | thuộc **Lịch Việt** |
+`lib/` là bản dựng sẵn đã commit — người dùng cài là chạy, không cần build.
+CI dựng lại `lib/` từ `src/` và so với bản đã commit, nên nhớ chạy `npm run build`
+trước khi push.
 
-Thuật toán viết độc lập dựa trên công thức thiên văn công khai và tri thức lịch
-pháp cổ truyền — thuộc phạm vi MIT.
+```
+src/            nguồn TypeScript (nguồn chân lý)
+  core/         thuật toán — không phụ thuộc gì
+  dataset/      giải mã dữ liệu + tra cứu
+  ui/           component React Native
+lib/            bản JS đã dựng (được publish)
+core/ dataset/ ui/   proxy cho bundler không hỗ trợ trường "exports"
+```
 
-Bộ dữ liệu (trong `src/dataset/data/` và `lib/dataset/data/`) được trích xuất từ
-ứng dụng **Lịch Việt** (`com.somestudio.lichvietnam`) và **thuộc quyền của Lịch Việt**
-— chỉ nên dùng cho mục đích cá nhân / tham khảo. Phát hành lại hoặc thương mại hoá
-phần dữ liệu này cần sự đồng ý của họ.
+---
 
-> Bảng giờ chuẩn (`gio-table.json`) tuy do thư viện dựng lại nhưng vẫn suy ra từ
-> chính dữ liệu Lịch Việt, nên xếp cùng nhóm `dataset/`.
+## Giấy phép
+
+**MIT** — xem [LICENSE](./LICENSE).
+
+Bộ dữ liệu lịch kèm theo chỉ nên dùng cho mục đích cá nhân / tham khảo.
 
 Nội dung can chi, sao tốt xấu, giờ hoàng đạo là **tham khảo văn hoá**, không phải
 lời khuyên về tài chính, y tế hay pháp lý.
