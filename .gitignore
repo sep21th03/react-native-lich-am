@@ -3,3 +3,5 @@ node_modules/
 .DS_Store
 .probe.txt
 npm-debug.log*
+
+.idea/
