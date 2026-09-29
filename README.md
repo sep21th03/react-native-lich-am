@@ -295,11 +295,23 @@ core/ dataset/ ui/        proxy package.json cho bundler không hỗ trợ "expo
 
 ## Giấy phép & dữ liệu
 
-Mã nguồn thuật toán: **MIT**.
+**Hai phần, hai giấy phép khác nhau:**
 
-Bộ dữ liệu trong `dataset/` được trích xuất từ ứng dụng **Lịch Việt**
-(`com.somestudio.lichvietnam`) và thuộc quyền của Lịch Việt — dùng cho mục đích
-cá nhân / tham khảo. Phát hành lại hoặc thương mại hoá cần sự đồng ý của họ.
+| Phần | Nội dung | Giấy phép |
+|---|---|---|
+| `core/` — thuật toán | chuyển đổi dương/âm, can chi, tiết khí, trực, giờ hoàng đạo, nạp âm, can chi giờ | **MIT** ([LICENSE](./LICENSE)) |
+| `dataset/` — dữ liệu | bảng giờ chuẩn + 1.462 ngày chi tiết (sao tốt xấu, việc nên làm, hướng…) | thuộc **Lịch Việt** |
+
+Thuật toán viết độc lập dựa trên công thức thiên văn công khai và tri thức lịch
+pháp cổ truyền — thuộc phạm vi MIT.
+
+Bộ dữ liệu (trong `src/dataset/data/` và `lib/dataset/data/`) được trích xuất từ
+ứng dụng **Lịch Việt** (`com.somestudio.lichvietnam`) và **thuộc quyền của Lịch Việt**
+— chỉ nên dùng cho mục đích cá nhân / tham khảo. Phát hành lại hoặc thương mại hoá
+phần dữ liệu này cần sự đồng ý của họ.
+
+> Bảng giờ chuẩn (`gio-table.json`) tuy do thư viện dựng lại nhưng vẫn suy ra từ
+> chính dữ liệu Lịch Việt, nên xếp cùng nhóm `dataset/`.
 
 Nội dung can chi, sao tốt xấu, giờ hoàng đạo là **tham khảo văn hoá**, không phải
 lời khuyên về tài chính, y tế hay pháp lý.

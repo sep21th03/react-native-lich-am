@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 nguyenhoa
+Copyright (c) 2026 Nguyen Hoa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,16 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-GHI CHÚ VỀ DỮ LIỆU
-
-Phần thuật toán (chuyển đổi dương/âm, can chi, tiết khí, trực, giờ hoàng đạo,
-nạp âm) được viết độc lập dựa trên các công thức thiên văn công khai và
-tri thức lịch pháp cổ truyền — thuộc phạm vi giấy phép MIT ở trên.
-
-Riêng bộ dữ liệu trong `dataset/` được trích xuất từ ứng dụng Lịch Việt
-(`com.somestudio.lichvietnam`) và thuộc quyền của Lịch Việt. Chỉ nên dùng cho
-mục đích cá nhân / tham khảo. Việc phát hành lại hoặc thương mại hoá cần sự
-đồng ý của chủ sở hữu dữ liệu.
